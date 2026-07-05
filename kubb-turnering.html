@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kubbturnering</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --grass: #2d5a1b;
+    --grass-light: #3a7324;
+    --wood: #c4882a;
+    --wood-light: #e8a83a;
+    --cream: #f7f0e3;
+    --ink: #1a1a18;
+    --muted: #7a7060;
+    --white: #ffffff;
+    --border: #d4c9b0;
+  }
+
+  body { font-family: 'Inter', sans-serif; background: var(--cream); color: var(--ink); min-height: 100vh; }
+
+  header {
+    background: var(--grass);
+    color: var(--white);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+
+  .kubb-icon { width: 32px; height: 32px; flex-shrink: 0; }
+
+  header h1 { font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; letter-spacing: 0.08em; line-height: 1; }
+  header p { font-size: 0.72rem; color: rgba(255,255,255,0.6); margin-top: 2px; }
+
+  .export-btn {
+    margin-left: auto;
+    background: var(--wood);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 13px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .export-btn:active { background: #a06e1a; }
+
+  .tabs {
+    display: flex;
+    background: var(--grass);
+    border-top: 1px solid rgba(255,255,255,0.15);
+  }
+  .tab {
+    flex: 1; padding: 10px; text-align: center;
+    font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+    color: rgba(255,255,255,0.55); cursor: pointer; border-bottom: 3px solid transparent;
+  }
+  .tab.active { color: var(--wood-light); border-bottom-color: var(--wood-light); }
+
+  .view { display: none; padding: 16px; }
+  .view.active { display: block; }
+
+  /* MATCH CARDS */
+  .match-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+
+  .match-header {
+    display: flex; align-items: center; padding: 12px 14px; gap: 8px;
+    cursor: pointer; user-select: none;
+  }
+  .match-players { flex: 1; font-weight: 600; font-size: 0.92rem; }
+  .match-status {
+    font-size: 0.68rem; padding: 3px 8px; border-radius: 20px; font-weight: 600;
+  }
+  .status-pending { background: #f0ebe0; color: var(--muted); }
+  .status-ongoing { background: #fff3cd; color: #856404; }
+  .status-done { background: #d4edda; color: #155724; }
+
+  .match-score-summary {
+    font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem;
+    letter-spacing: 0.05em; color: var(--grass); min-width: 40px; text-align: right;
+  }
+
+  .match-body { border-top: 1px solid var(--border); padding: 14px; display: none; }
+  .match-body.open { display: block; }
+
+  /* GAME ROW */
+  .game-row {
+    margin-bottom: 10px;
+    background: #faf7f2;
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .game-row-label {
+    font-size: 0.65rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--muted); margin-bottom: 8px;
+  }
+  .winner-btns {
+    display: flex; gap: 8px; margin-bottom: 8px;
+  }
+  .winner-btn {
+    flex: 1; padding: 8px 6px; border: 1.5px solid var(--border);
+    border-radius: 7px; background: white; font-family: 'Inter', sans-serif;
+    font-size: 0.8rem; font-weight: 600; cursor: pointer; text-align: center;
+    transition: all 0.12s; color: var(--ink);
+  }
+  .winner-btn.selected {
+    background: var(--grass); color: white; border-color: var(--grass);
+  }
+  .winner-btn.loser {
+    opacity: 0.4;
+  }
+
+  .kubbar-row {
+    display: flex; align-items: center; gap: 8px; margin-top: 4px;
+  }
+  .kubbar-label { font-size: 0.72rem; color: var(--muted); font-weight: 500; }
+  .kubbar-input {
+    width: 58px; padding: 5px 6px; text-align: center;
+    border: 1.5px solid var(--border); border-radius: 6px;
+    font-size: 1rem; font-weight: 700; font-family: 'Bebas Neue', sans-serif;
+    background: white; color: var(--ink); letter-spacing: 0.05em;
+  }
+  .kubbar-input:focus { outline: none; border-color: var(--grass); }
+  .kubbar-suffix { font-size: 0.72rem; color: var(--muted); }
+
+  .match-winner-bar {
+    margin-top: 10px; padding: 8px 10px; background: var(--grass);
+    color: white; border-radius: 6px; font-size: 0.82rem; font-weight: 600;
+    display: none; align-items: center; gap: 6px;
+  }
+  .match-winner-bar.visible { display: flex; }
+
+  /* STANDINGS */
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem;
+    letter-spacing: 0.08em; color: var(--grass); margin-bottom: 10px;
+  }
+  .info-box {
+    background: white; border: 1px solid var(--border); border-radius: 8px;
+    padding: 9px 13px; font-size: 0.75rem; color: var(--muted);
+    margin-bottom: 14px; line-height: 1.5;
+  }
+  .standings-table {
+    width: 100%; border-collapse: collapse; background: var(--white);
+    border-radius: 10px; overflow: hidden; border: 1px solid var(--border); font-size: 0.82rem;
+  }
+  .standings-table thead { background: var(--grass); color: white; }
+  .standings-table th {
+    padding: 9px 6px; text-align: center;
+    font-size: 0.65rem; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase;
+  }
+  .standings-table th:nth-child(2) { text-align: left; padding-left: 12px; }
+  .standings-table td { padding: 9px 6px; text-align: center; border-bottom: 1px solid var(--border); }
+  .standings-table td:nth-child(2) { text-align: left; padding-left: 12px; font-weight: 600; }
+  .standings-table tr:last-child td { border-bottom: none; }
+  .standings-table tr:nth-child(even) td { background: #faf7f2; }
+
+  .rank-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px; border-radius: 50%; font-size: 0.68rem; font-weight: 700;
+  }
+  .rank-1 { background: #ffd700; color: #5a4000; }
+  .rank-2 { background: #c0c0c0; color: #333; }
+  .rank-3 { background: #cd7f32; color: #fff; }
+  .rank-other { background: var(--border); color: var(--muted); }
+  .pts { font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; color: var(--grass); }
+
+  /* H2H */
+  .h2h-grid { overflow-x: auto; }
+  .h2h-table {
+    width: 100%; border-collapse: collapse; background: var(--white);
+    border-radius: 10px; overflow: hidden; border: 1px solid var(--border);
+    font-size: 0.75rem; min-width: 300px;
+  }
+  .h2h-table th, .h2h-table td { padding: 8px 5px; text-align: center; border: 1px solid var(--border); }
+  .h2h-table th { background: var(--grass); color: white; font-size: 0.65rem; font-weight: 600; }
+  .h2h-table td:first-child { font-weight: 600; background: var(--grass); color: white; font-size: 0.65rem; }
+  .h2h-win { background: #d4edda; font-weight: 600; color: #155724; }
+  .h2h-loss { background: #f8d7da; color: #721c24; }
+  .h2h-self { background: #e9e5dc; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <svg class="kubb-icon" viewBox="0 0 40 40" fill="none">
+    <rect x="12" y="8" width="16" height="26" rx="2" fill="#c4882a"/>
+    <rect x="14" y="8" width="3" height="26" fill="#e8a83a" opacity="0.5"/>
+    <rect x="10" y="6" width="20" height="4" rx="1" fill="#8B5E1A"/>
+    <rect x="10" y="30" width="20" height="4" rx="1" fill="#8B5E1A"/>
+    <polygon points="14,6 16,1 20,4 24,1 26,6" fill="#e8a83a"/>
+  </svg>
+  <div>
+    <h1>Kubbturnering</h1>
+    <p>Alla möter alla · Bäst av tre · Kubbar räknas</p>
+  </div>
+  <button class="export-btn" onclick="exportHTML()">📤 Skicka</button>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('matches')">Matcher</div>
+  <div class="tab" onclick="switchTab('standings')">Tabell</div>
+  <div class="tab" onclick="switchTab('h2h')">Direktmöten</div>
+</div>
+
+<div id="view-matches" class="view active"></div>
+
+<div id="view-standings" class="view">
+  <p class="section-title">Ställning</p>
+  <div class="info-box">3p för matchseger + 1p per vunnet parti. Kubbar avgör vid lika poäng.</div>
+  <table class="standings-table">
+    <thead>
+      <tr>
+        <th>#</th><th>Spelare</th><th>M</th><th>V</th><th>F</th><th>Parti</th><th>Kubbar</th><th>Pts</th>
+      </tr>
+    </thead>
+    <tbody id="standings-body"></tbody>
+  </table>
+</div>
+
+<div id="view-h2h" class="view">
+  <p class="section-title">Direktmöten</p>
+  <div class="info-box">Vunna partier per direktmöte. Grön = matchseger.</div>
+  <div class="h2h-grid"><table class="h2h-table" id="h2h-table"></table></div>
+</div>
+
+<script>
+const PLAYERS = ['Pelle','Monika','Noah','Sebbe','Diana'];
+
+// Each game: { winner: 'Pelle'|'Monika'|null, kubbar: number|null }
+// winner = the player who won; kubbar = how many the LOSER had left
+function makeGame() { return { winner: null, kubbar: null }; }
+function makeMatch(p1, p2) { return { p1, p2, games: [makeGame(), makeGame(), makeGame()] }; }
+
+function generateMatches(players) {
+  const m = [];
+  for (let i = 0; i < players.length; i++)
+    for (let j = i+1; j < players.length; j++)
+      m.push(makeMatch(players[i], players[j]));
+  return m;
+}
+
+let matches = loadState() || generateMatches(PLAYERS);
+
+function saveState() {
+  try { localStorage.setItem('kubb_matches_v2', JSON.stringify(matches)); } catch(e){}
+}
+function loadState() {
+  try { const s = localStorage.getItem('kubb_matches_v2'); return s ? JSON.parse(s) : null; } catch(e) { return null; }
+}
+
+function gameWinner(g) { return g.winner || null; }
+
+function matchGamesWon(match) {
+  let w1 = 0, w2 = 0;
+  for (const g of match.games) {
+    if (g.winner === match.p1) w1++;
+    else if (g.winner === match.p2) w2++;
+  }
+  return [w1, w2];
+}
+
+function matchWinner(match) {
+  const [w1,w2] = matchGamesWon(match);
+  if (w1 >= 2) return match.p1;
+  if (w2 >= 2) return match.p2;
+  return null;
+}
+
+function isMatchComplete(match) {
+  const [w1,w2] = matchGamesWon(match);
+  return w1 >= 2 || w2 >= 2;
+}
+
+function isMatchStarted(match) {
+  return match.games.some(g => g.winner !== null);
+}
+
+// kubbar "för" = kubbar motståndaren hade kvar när DU vann
+function computeStandings() {
+  const stats = {};
+  PLAYERS.forEach(p => stats[p] = {mp:0,mw:0,ml:0,gw:0,gl:0,kubbFor:0,kubbAgainst:0,pts:0});
+
+  for (const m of matches) {
+    if (!isMatchComplete(m)) continue;
+    const [w1,w2] = matchGamesWon(m);
+    const mw = matchWinner(m);
+
+    stats[m.p1].mp++; stats[m.p2].mp++;
+    stats[m.p1].gw += w1; stats[m.p1].gl += w2;
+    stats[m.p2].gw += w2; stats[m.p2].gl += w1;
+
+    if (mw === m.p1) { stats[m.p1].mw++; stats[m.p2].ml++; }
+    else { stats[m.p2].mw++; stats[m.p1].ml++; }
+
+    stats[m.p1].pts += (mw===m.p1?3:0) + w1;
+    stats[m.p2].pts += (mw===m.p2?3:0) + w2;
+
+    for (const g of m.games) {
+      if (!g.winner || g.kubbar === null) continue;
+      const loser = g.winner === m.p1 ? m.p2 : m.p1;
+      stats[g.winner].kubbFor += g.kubbar;
+      stats[loser].kubbAgainst += g.kubbar;
+    }
+  }
+  return stats;
+}
+
+function renderMatches() {
+  const container = document.getElementById('view-matches');
+  container.innerHTML = '';
+
+  matches.forEach((match, mi) => {
+    const started = isMatchStarted(match);
+    const done = isMatchComplete(match);
+    const [w1,w2] = matchGamesWon(match);
+    const mw = matchWinner(match);
+
+    let statusClass = 'status-pending', statusText = 'Ej spelad';
+    if (done) { statusClass = 'status-done'; statusText = 'Klar'; }
+    else if (started) { statusClass = 'status-ongoing'; statusText = 'Pågår'; }
+
+    const card = document.createElement('div');
+    card.className = 'match-card';
+    const summaryText = started||done ? `${w1}–${w2}` : '';
+
+    card.innerHTML = `
+      <div class="match-header" onclick="toggleMatch(${mi})">
+        <div class="match-players">${match.p1} <span style="color:var(--muted);font-weight:400">vs</span> ${match.p2}</div>
+        <span class="match-status ${statusClass}">${statusText}</span>
+        <div class="match-score-summary">${summaryText}</div>
+      </div>
+      <div class="match-body" id="match-body-${mi}">
+        <div id="games-${mi}"></div>
+        <div class="match-winner-bar ${mw?'visible':''}" id="mwb-${mi}">
+          🏆 <span>${mw} vinner matchen!</span>
+        </div>
+      </div>
+    `;
+    container.appendChild(card);
+    renderGames(mi);
+  });
+}
+
+function renderGames(mi) {
+  const match = matches[mi];
+  const container = document.getElementById(`games-${mi}`);
+  if (!container) return;
+  container.innerHTML = '';
+
+  const [w1,w2] = matchGamesWon(match);
+
+  match.games.forEach((g, gi) => {
+    // Skip game 3 display if match already decided and game 3 not played
+    if (gi === 2 && isMatchComplete(match) && !g.winner) return;
+
+    const loser = g.winner ? (g.winner === match.p1 ? match.p2 : match.p1) : null;
+    const kubbVal = g.kubbar !== null ? g.kubbar : '';
+
+    const row = document.createElement('div');
+    row.className = 'game-row';
+    row.innerHTML = `
+      <div class="game-row-label">Parti ${gi+1}</div>
+      <div class="winner-btns">
+        <button class="winner-btn ${g.winner===match.p1?'selected':''} ${g.winner&&g.winner!==match.p1?'loser':''}"
+          onclick="setWinner(${mi},${gi},'${match.p1}')">🏅 ${match.p1}</button>
+        <button class="winner-btn ${g.winner===match.p2?'selected':''} ${g.winner&&g.winner!==match.p2?'loser':''}"
+          onclick="setWinner(${mi},${gi},'${match.p2}')">🏅 ${match.p2}</button>
+      </div>
+      ${g.winner ? `
+      <div class="kubbar-row">
+        <span class="kubbar-label">${loser} hade</span>
+        <input class="kubbar-input" type="number" min="0" max="15" inputmode="numeric"
+          value="${kubbVal}" placeholder="0"
+          oninput="setKubbar(${mi},${gi},this.value)">
+        <span class="kubbar-suffix">kubbar kvar</span>
+      </div>` : ''}
+    `;
+    container.appendChild(row);
+  });
+}
+
+function setWinner(mi, gi, player) {
+  // Toggle off if same player clicked again
+  if (matches[mi].games[gi].winner === player) {
+    matches[mi].games[gi].winner = null;
+    matches[mi].games[gi].kubbar = null;
+  } else {
+    matches[mi].games[gi].winner = player;
+    matches[mi].games[gi].kubbar = null;
+  }
+  saveState();
+  rerenderAll(mi);
+}
+
+function setKubbar(mi, gi, value) {
+  const v = value === '' ? null : parseInt(value);
+  matches[mi].games[gi].kubbar = (v === null || isNaN(v)) ? null : Math.max(0, v);
+  saveState();
+  renderStandings();
+  renderH2H();
+}
+
+function rerenderAll(mi) {
+  renderMatches();
+  renderStandings();
+  renderH2H();
+  const body = document.getElementById(`match-body-${mi}`);
+  if (body) body.classList.add('open');
+}
+
+function toggleMatch(mi) {
+  const body = document.getElementById(`match-body-${mi}`);
+  if (body) body.classList.toggle('open');
+}
+
+function renderStandings() {
+  const stats = computeStandings();
+  const sorted = PLAYERS.slice().sort((a,b) => {
+    if (stats[b].pts !== stats[a].pts) return stats[b].pts - stats[a].pts;
+    return (stats[b].kubbFor - stats[b].kubbAgainst) - (stats[a].kubbFor - stats[a].kubbAgainst);
+  });
+  const tbody = document.getElementById('standings-body');
+  tbody.innerHTML = '';
+  sorted.forEach((p, idx) => {
+    const s = stats[p];
+    const rank = idx+1;
+    const rc = rank<=3?`rank-${rank}`:'rank-other';
+    const kd = s.kubbFor - s.kubbAgainst;
+    tbody.innerHTML += `<tr>
+      <td><span class="rank-badge ${rc}">${rank}</span></td>
+      <td>${p}</td>
+      <td>${s.mp}</td><td>${s.mw}</td><td>${s.ml}</td>
+      <td>${s.gw}–${s.gl}</td>
+      <td>${kd>=0?'+':''}${kd}</td>
+      <td><span class="pts">${s.pts}</span></td>
+    </tr>`;
+  });
+}
+
+function renderH2H() {
+  const table = document.getElementById('h2h-table');
+  let html = '<thead><tr><th></th>';
+  PLAYERS.forEach(p => html += `<th>${p.substring(0,4)}</th>`);
+  html += '</tr></thead><tbody>';
+  PLAYERS.forEach(p1 => {
+    html += `<tr><td>${p1.substring(0,4)}</td>`;
+    PLAYERS.forEach(p2 => {
+      if (p1===p2) { html += '<td class="h2h-self">—</td>'; return; }
+      const m = matches.find(m => (m.p1===p1&&m.p2===p2)||(m.p1===p2&&m.p2===p1));
+      if (!m) { html += '<td>?</td>'; return; }
+      const [w1,w2] = matchGamesWon(m);
+      const myW = m.p1===p1?w1:w2, theirW = m.p1===p1?w2:w1;
+      const mw = matchWinner(m);
+      let cls = '';
+      if (isMatchComplete(m)) cls = mw===p1?'h2h-win':'h2h-loss';
+      const display = isMatchStarted(m)?`${myW}–${theirW}`:'·';
+      html += `<td class="${cls}">${display}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody>';
+  table.innerHTML = html;
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    t.classList.toggle('active', ['matches','standings','h2h'][i]===tab);
+  });
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(`view-${tab}`).classList.add('active');
+}
+
+function exportHTML() {
+  const currentHTML = document.documentElement.outerHTML;
+  const dataJSON = JSON.stringify(matches);
+  const exported = currentHTML
+    .replace(
+      "let matches = loadState() || generateMatches(PLAYERS);",
+      `let matches = ${dataJSON};`
+    )
+    .replace(
+      '<button class="export-btn" onclick="exportHTML()">📤 Skicka</button>',
+      ''
+    );
+  const blob = new Blob([exported], {type:'text/html'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const now = new Date();
+  const ts = `${now.getHours().toString().padStart(2,'0')}${now.getMinutes().toString().padStart(2,'0')}`;
+  a.download = `kubbturnering-${ts}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+renderMatches();
+renderStandings();
+renderH2H();
+</script>
+</body>
+</html>
